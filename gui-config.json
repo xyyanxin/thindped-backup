@@ -1,0 +1,13 @@
+{
+    "configs": [
+        {
+            "method": "aes-256-cfb",
+            "password": "yan0312",
+            "remarks": "new",
+            "server": "103.240.183.54",
+            "server_port": 8989
+        }
+    ],
+    "localPort": 1080,
+    "shareOverLan": false
+}
