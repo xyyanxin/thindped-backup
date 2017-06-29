@@ -79,7 +79,7 @@ if [ -x /usr/bin/dircolors ]; then
     #alias dir='dir --color=auto'
     #alias vdir='vdir --color=auto'
 
-    alias grep='grep --color=auto'
+    #alias grep='grep --color==auto'
     alias fgrep='fgrep --color=auto'
     alias egrep='egrep --color=auto'
 fi
@@ -88,7 +88,6 @@ fi
 alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
-alias rm='trash'
 
 # Add an "alert" alias for long running commands.  Use like so:
 #   sleep 10; alert
@@ -120,9 +119,11 @@ alias npm="/home/xy/Downloads/node-v6.2.0-linux-x64/bin/node /home/xy/Downloads/
 alias cnman="man -M /usr/share/man/zh_CN"
 export NVM_DIR="/home/xy/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm:wq
-alias rm="rm-p"
 alias vi='vim'
 alias cnpm="npm --registry=https://registry.npm.taobao.org \
     --cache=$HOME/.npm/.cache/cnpm \
     --disturl=https://npm.taobao.org/dist \
     --userconfig=$HOME/.cnpmrc"""
+
+alias today="source /home/xy/workspace/mypritice/0619/today.sh"
+alias yesterday="source /home/xy/workspace/mypritice/0624/yesterday.sh"
