@@ -1,0 +1,24 @@
+Host even-ops
+    User        xy
+    Hostname    101.200.130.122
+    Port        43
+
+Host even-inter
+    User        xy
+    Hostname    182.92.173.143
+    Port        43
+
+Host even-gitlab
+    User        xy
+    Hostname    182.92.173.143
+    Port        10022
+
+Host even-test
+    User        xy
+    Hostname    123.56.167.117
+    Port        43
+
+Host even-spider
+    User        xy
+    Hostname    180.76.164.44
+    Port        43
