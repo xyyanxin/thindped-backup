@@ -98,6 +98,7 @@ Plugin 'gmarik/Vundle.vim'
 " Keep Plugin commands between vundle#begin/end.
 " plugin on GitHub repo
 " Plugin 'tpope/vim-fugitive'
+Plugin 'Valloric/YouCompleteMe'
 Plugin 'saltstack/salt-vim'
 Plugin 'scrooloose/nerdtree'
 Plugin 'nvie/vim-flake8'
@@ -136,7 +137,7 @@ inoremap ' ''<LEFT>
 inoremap " ""<LEFT>
 " 文件一开就启动nerdtree
 let g:nerdtree_open_on_console_startup=1
-Plugin 'Valloric/YouCompleteMe'
+
 "split navigations
 nnoremap <C-J> <C-W><C-J>
 nnoremap <C-K> <C-W><C-K>
