@@ -104,6 +104,7 @@ Plugin 'scrooloose/nerdtree'
 Plugin 'nvie/vim-flake8'
 " plugin from http://vim-scripts.org/vim/scripts.html
 Plugin 'L9'
+Plugin 'kien/ctrlp.vim'
 " Git plugin not hosted on GitHub
 " Plugin 'git://git.wincent.com/command-t.git'
 " git repos on your local machine (i.e. when working on your own plugin)
@@ -128,15 +129,16 @@ filetype plugin indent on    " required
 "
 " see :h vundle for more details or wiki for FAQ
 " Put your non-Plugin stuff after this line
+
+" 自动备份
 let autosave=60  
+
 " 插入匹配括号
 inoremap ( ()<LEFT>
 inoremap [ []<LEFT>
 inoremap { {}<LEFT>
 inoremap ' ''<LEFT>
 inoremap " ""<LEFT>
-" 文件一开就启动nerdtree
-let g:nerdtree_open_on_console_startup=1
 
 "split navigations
 nnoremap <C-J> <C-W><C-J>
