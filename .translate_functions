@@ -1,0 +1,41 @@
+
+# author: yantze
+# date: 2016-08-18
+# require command `jq` : https://stedolan.github.io/jq/
+# less is more
+
+# google api
+trsi () {
+    # google api only support + concat
+    words=`echo $* | sed 's/ /+/g'`
+    key='balabana' # 需要提供谷歌服务 key
+    url="https://www.googleapis.com/language/translate/v2?key=$key&source=en&target=zh&q=$words"
+    # use proxy: curl --socks5-hostname host:port --silent $url
+    curl --silent $url
+}
+trs () {
+    # google api only support + concat
+    words=`echo $* | sed 's/ /+/g'`
+    sl='en' # 'auto' 自动检测但翻译比较差
+    tl='zh-CN'
+    params="client=gtx&ie=UTF-8&oe=UTF-8&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&dt=t&dt=at&sl=$sl&tl=$tl&hl=en&q=$words"
+    url="http://translate.google.cn/translate_a/single"
+    header='User-Agent:Mozilla/4.0'
+    curl --silent -H $header "$url?$params" | sed -e 's/[,]\{2,\}/,/g' -e 's/\[,/\[/g' | jq '.[0]'
+}
+
+
+# Youdao api
+dict () {
+    words=$*
+    key='1648104049'
+    keyfrom='aobailaile'
+    url="http://fanyi.youdao.com/openapi.do"
+    params="keyfrom=$keyfrom&key=$key&type=data&doctype=json&version=1.1"
+    curl --silent --data-urlencode "q=$words" "$url?$params" | jq -C '.'
+}
+
+# As REPL
+trsl () {
+    while true ;do read words; trs $words; done
+}
