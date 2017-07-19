@@ -7,3 +7,5 @@
 [user]
     name = xy
     email = yanxin@chengantech.com
+[push]
+	default = current
