@@ -115,7 +115,7 @@ fi
 source /usr/local/bin/virtualenvwrapper.sh
 export APP_CONFIG=/home/xy/.config/myproject/even.cfg
 # alias node=/home/xy/Downloads/node-v6.2.0-linux-x64/bin/node
-alias npm="/home/xy/Downloads/node-v6.2.0-linux-x64/bin/node /home/xy/Downloads/node-v6.2.0-linux-x64/bin/npm"
+#alias npm="/home/xy/Downloads/node-v6.2.0-linux-x64/bin/node /home/xy/Downloads/node-v6.2.0-linux-x64/bin/npm"
 alias cnman="man -M /usr/share/man/zh_CN"
 export NVM_DIR="/home/xy/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm:wq
@@ -127,5 +127,8 @@ alias cnpm="npm --registry=https://registry.npm.taobao.org \
 
 alias today="source /home/xy/workspace/mypritice/0619/today.sh"
 alias yesterday="source /home/xy/workspace/mypritice/0624/yesterday.sh"
-source ~/git/nvm/nvm.sh
+#source ~/git/nvm/nvm.sh
 export NVM_NODEJS_ORG_MIRROR=https://npm.taobao.org/mirrors/node
+. ~/.translate_functions
+alias resetdb="source /home/xy/scripts/reset_db.sh"
+alias grep="grep --color=auto"
