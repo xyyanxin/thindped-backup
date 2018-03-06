@@ -1,0 +1,270 @@
+mysql 分库分表的方法
+
+摘要： 分表后怎么做全文搜索 
+1.merge方式分表(不好) 
+2. 使用 sql union 3 使用Sphinx全文检索引擎 一，先说一下为什么要分表 当一张的数据达到几百万时，你查询一次所花的时间会变多，如果有联合查询的话，我想有可能会死在那儿了。
+
+分表后怎么做全文搜索
+
+1.merge方式分表(不好)
+
+2. 使用 sql union
+
+3 使用Sphinx全文检索引擎
+
+一，先说一下为什么要分表
+
+当一张的数据达到几百万时，你查询一次所花的时间会变多，如果有联合查询的话，我想有可能会死在那儿了。分表的目的就在于此，减小数据库的负担，缩短查询时间。
+
+根据个人经验，MySQL执行一个sql的过程如下：
+1,接收到sql;2,把sql放到排队队列中 ;3,执行sql;4,返回执行结果。在这个执行过程中最花时间在什么地方呢？第一，是排队等待的时间，第二，sql的执行时间。其实这二个是一回事，等待的同时，肯定有sql在执行。所以我们要缩短sql的执行时间。
+
+mysql中有一种机制是表锁定和行锁定，为什么要出现这种机制，是为了保证数据的完整 性，我举个例子来说吧，如果有二个sql都要修改同一张表的同一条数据，这个时候怎么办呢，是不是二个sql都可以同时修改这条数据呢？很显然mysql 对这种情况的处理是，一种是表锁定（myisam存储引擎），一个是行锁定（innodb存储引擎）。表锁定表示你们都不能对这张表进行操作，必须等我对 表操作完才行。行锁定也一样，别的sql必须等我对这条数据操作完了，才能对这条数据进行操作。如果数据太多，一次执行的时间太长，等待的时间就越长，这 也是我们为什么要分表的原因。
+
+ 
+
+垂直分割
+
+就是将一个大表分为多个小表.把主码和一些列放到一个表，然后把主码和另外的列放到另一个表中。
+如果一个表中某些列常用，而另外一些列不常用，则可以采用垂直分割，另外垂直分割可以使得数据行变小，一个数据页就能存放更多的数据，在查询时就会减少I/O次数。其缺点是需要管理冗余列，查询所有数据需要join操作。比如物料有很多属性,不同的部门有不同的属性需求,比如财务部门有财务的属性要求,采购部门有采购的属性要求,按部门要求不同拆分为不同的表,仅将基本的公共属性放在主表中,根据不同的部门要求建不同的表及查询视图,性能要好一些
+
+ 
+
+常见的分表维度考虑
+
+按时间分表
+
+这种分表方式有一定的局限性，当数据有较强的实效性，如微博发送记录、微信消息记录等，这种数据很少有用户会查询几个月前的数据，如就可以按月分表。
+
+数据迁移的方式
+
+当一些很久之前的数据，很少再查询。比如员工工资表，我们可以只存今年的工资情况。而历史数据我们可以迁移到一张salary_old表中,保证数据不会丢失。但也可以用来查询。每天定期把今年中的最早一天的记录归入旧表中。这样一方面可以解决性能问题，最多也只需要读2张表就完成了。
+
+按热度拆分
+
+典型的像贴吧这种有高点击率的词条，也有低点击率的词条，如果一个词条一张表，那得多少表啊，所以一般这种情况就会对高点击率的词条生成 一张表，低热度的词条都放在一张大表里，待低热度的词条达到一定的贴数后，比如1W条，再把低热度的表单独拆分成一张表。
+
+ 
+
+二，分表
+
+1，做mysql集群，例如：利用mysql cluster ，mysql proxy，mysql replication，drdb等等
+
+有人会问mysql集群，根分表有什么关系吗？虽然它不是实际意义上的分表，但是它启到 了分表的作用，做集群的意义是什么呢？为一个数据库减轻负担，说白了就是减少sql排队队列中的sql的数量，举个例子：有10个sql请求，如果放在一 个数据库服务器的排队队列中，他要等很长时间，如果把这10个sql请求，分配到5个数据库服务器的排队队列中，一个数据库服务器的队列中只有2个，这样 等待时间是不是大大的缩短了呢？这已经很明显了。所以我把它列到了分表的范围以内，我做过一些mysql的集群：
+
+linux mysql proxy 的安装，配置，以及读写分离
+
+mysql replication 互为主从的安装及配置，以及数据同步
+
+优点：扩展性好，没有多个分表后的复杂操作（php代码）
+
+缺点：单个表的数据量还是没有变，一次操作所花的时间还是那么多，硬件开销大。
+
+2，预先估计会出现大数据量并且访问频繁的表，将其分为若干个表
+
+使用MD5哈希
+
+做法是对UID进行md5加密，然后取前几位（我们这里取前两位），然后就可以将不同的UID哈希到不同的用户表（user_xx）中了
+
+Java代码  收藏代码
+<?php  
+function get_hash_table($table, $userid)  
+{  
+    $str = crc32($userid);  
+    if ($str < 0) {  
+        $hash = "0" . substr(abs($str), 0, 1);  
+    } else {  
+        $hash = substr($str, 0, 2);  
+    }  
+    return $table . "_" . $hash;  
+}  
+//echo get_hash_table('message', 'user18991'); //结果为message_10  
+//echo get_hash_table('message', 'user34523'); //结果为message_13  
+function calc_hash_db($u, $s = 4) {  
+    $h = sprintf("%u", crc32($u));  
+    $h1 = intval(fmod($h, $s));  
+    return $h1;  
+}  
+  
+for ($i = 1; $i < 40; $i++) {  
+    echo calc_hash_tbl($i);  
+    echo "<br>";  
+    echo calc_hash_db($i);  
+    echo "<br>";  
+}  
+  
+function calc_hash_tbl($u, $n = 256, $m = 16) {  
+    $h = sprintf("%u", crc32($u));  
+    $h1 = intval($h / $n);  
+    $h2 = $h1 % $n;  
+    $h3 = base_convert($h2, 10, $m);  
+    $h4 = sprintf("%02s", $h3);  
+  
+    return $h4;  
+}  
+#################  
+function getTable( $uid ){  
+    $ext = substr ( md5($uid) ,0 ,2 );  
+    return "user_".$ext;  
+}  
+###################  
+private function getDbNo($email)  
+{  
+    $m = md5($email);  
+    $n = hexdec(substr($m, 0, 16));  
+    $tableNo = fmod($n, 1000);  
+    $dbNo = $tableNo % 100;  
+    return array($dbNo, $tableNo);  
+}  
+通过这个技巧，我们可以将不同的UID分散到256中用户表中，分别是user_00,user_01 ……    user_ff。因为UID是数字且递增，根据md5的算法，可以将用户数据几乎很均匀的分别到不同的user表中。
+
+但是这里有个问题是，如果我们的系统的用户越来越多，势必单张表的数据量越来越大，而且根据这种算法无法扩展表，这又会回到文章开头出现的问题了。
+
+使用移位
+
+Java代码  收藏代码
+/** 
+ * 根据UID分表算法 
+ * 
+ * @param int $uid  //用户ID 
+ * @param int $bit    //表后缀保留几位 
+ * @param int $seed //向右移动位数 
+ */  
+function getTable( $uid , $bit , $seed ){  
+    return "user_" . sprintf( "%0{$bit}d" , ($uid >> $seed) );  
+    return "user_" . sprintf( "%04d", ($uid >> 20) );  
+  
+}  
+这里，我们将uid向右移动20位，这样我们就可以把大约前100万的用户数据放在第一个表user_0000，第二个100万的用户数据放在第二 个表user_0001中，这样一直下去，如果我们的用户越来越多，直接添加用户表就行了。由于我们保留的表后缀是四位，这里我们可以添加1万张用户表， 即user_0000,user_0001 …… user_9999。一万张表，每张表100万数据，我们可以存100亿条用户记录。当然，如果你的用户数据比这还多，也不要紧，你只要改变保留表后缀来 增加可以扩展的表就行了，如如果有1000亿条数据，每个表存100万，那么你需要10万张表，我们只要保留表后缀为6位即可。
+
+上面两种方法，都要对我们当前系统的用户数据量做出可能最大的预估，并且对数据库单个表的最大承受量做出预估。
+
+比如第二种方案，如果我们预估我们系统的用户是100亿，单张表的最优数据量是100万，那么我们就需要将UID移动20来确保每个表是100万的数据，保留用户表（user_xxxx）四位来扩展1万张表。
+
+又如第一种方案，每张表100万，md5后取前两位，就只能有256张表了，系统总数据库就是：256*100万；如果你系统的总数据量的比这还多，那你实现肯定要MD5取前三位或者四位甚至更多位了。
+
+两种方法都是将数据水平切分到不同的表中，相对第一种方法，第二种方法更具扩展性。
+
+ 
+
+3，利用merge存储引擎来实现分表
+
+我觉得这种方法比较适合，那些没有事先考虑，而已经出现了得，数据查询慢的情况。这个时 候如果要把已有的大数据量表分开比较痛苦，最痛苦的事就是改代码，因为程序里面的sql语句已经写好了，现在一张表要分成几十张表，甚至上百张表，这样 sql语句是不是要重写呢？举个例子，我很喜欢举子
+
+mysql>show engines;的时候你会发现mrg_myisam其实就是merge。
+
+Java代码  收藏代码
+CREATE TABLE IF NOT EXISTS `user1` (    
+    `id` int(11) NOT NULL AUTO_INCREMENT,    
+    `name` varchar(50) DEFAULT NULL,    
+    `sex` int(1) NOT NULL DEFAULT '0',    
+    PRIMARY KEY (`id`)    
+  ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;    
+Query OK, 0 rows affected (0.05 sec)  
+  
+ CREATE TABLE IF NOT EXISTS `user2` (    
+    `id` int(11) NOT NULL AUTO_INCREMENT,    
+    `name` varchar(50) DEFAULT NULL,    
+    `sex` int(1) NOT NULL DEFAULT '0',    
+    PRIMARY KEY (`id`)    
+  ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;    
+Query OK, 0 rows affected (0.01 sec)  
+  
+mysql> INSERT INTO `user1` (`name`, `sex`) VALUES('张映', 0);  
+Query OK, 1 row affected (0.00 sec)  
+  
+mysql> INSERT INTO `user2` (`name`, `sex`) VALUES('tank', 1);  
+Query OK, 1 row affected (0.00 sec)  
+  
+CREATE TABLE IF NOT EXISTS `alluser` (  
+    `id` int(11) NOT NULL AUTO_INCREMENT,  
+    `name` varchar(50) DEFAULT NULL,  
+    `sex` int(1) NOT NULL DEFAULT '0',  
+    INDEX(id)  
+  ) TYPE=MERGE UNION=(user1,user2) INSERT_METHOD=LAST AUTO_INCREMENT=1 ;  
+Query OK, 0 rows affected, 1 warning (0.00 sec)  
+  
+mysql> select id,name,sex from alluser;  
++----+--------+-----+  
+| id | name   | sex |  
++----+--------+-----+  
+|  1 | 张映 |   0 |  
+|  1 | tank   |   1 |  
++----+--------+-----+  
+2 rows in set (0.00 sec)  
+  
+mysql> INSERT INTO `alluser` (`name`, `sex`) VALUES('tank2', 0);  
+Query OK, 1 row affected (0.00 sec)  
+  
+mysql> select id,name,sex from user2  
+ -> ;  
++----+-------+-----+  
+| id | name  | sex |  
++----+-------+-----+  
+|  1 | tank  |   1 |  
+|  2 | tank2 |   0 |  
++----+-------+-----+  
+2 rows in set (0.00 sec)  
+从上面的操作中，我不知道你有没有发现点什么？假如我有一张用户表user，有50W条数据，现在要拆成二张表user1和user2，每张表25W条数据，
+
+INSERT INTO user1(user1.id,user1.name,user1.sex)SELECT (user.id,user.name,user.sex)FROM user where user.id <= 250000
+
+INSERT INTO user2(user2.id,user2.name,user2.sex)SELECT (user.id,user.name,user.sex)FROM user where user.id > 250000
+
+这样我就成功的将一张user表，分成了二个表，这个时候有一个问题，代码中的sql语 句怎么办，以前是一张表，现在变成二张表了，代码改动很大，这样给程序员带来了很大的工作量，有没有好的办法解决这一点呢？办法是把以前的user表备份 一下，然后删除掉，上面的操作中我建立了一个alluser表，只把这个alluser表的表名改成user就行了。但是，不是所有的mysql操作都能 用的
+
+a，如果你使用 alter table 来把 merge 表变为其它表类型，到底层表的映射就被丢失了。取而代之的，来自底层 myisam 表的行被复制到已更换的表中，该表随后被指定新类型。
+
+b，网上看到一些说replace不起作用，我试了一下可以起作用的。晕一个先
+
+Java代码  收藏代码
+mysql> UPDATE alluser SET sex=REPLACE(sex, 0, 1) where id=2;    
+Query OK, 1 row affected (0.00 sec)    
+ Rows matched: 1  Changed: 1  Warnings: 0    
+     
+ mysql> select * from alluser;    
+ +----+--------+-----+    
+ | id | name   | sex |    
+ +----+--------+-----+    
+ |  1 | 张映 |   0 |    
+ |  1 | tank   |   1 |    
+ |  2 | tank2  |   1 |    
+ +----+--------+-----+    
+ 3 rows in set (0.00 sec)    
+c，一个 merge 表不能在整个表上维持 unique 约束。当你执行一个 insert，数据进入第一个或者最后一个 myisam 表（取决于 insert_method 选项的值）。mysql 确保唯一键值在那个 myisam 表里保持唯一，但不是跨集合里所有的表。
+
+d,当你创建一个 merge 表之时，没有检查去确保底层表的存在以及有相同的机构。当 merge 表被使用之时，mysql 检查每个被映射的表的记录长度是否相等，但这并不十分可靠。如果你从不相似的 myisam 表创建一个 merge 表，你非常有可能撞见奇怪的问题。
+
+好困睡觉了，c和d在网上看到的，没有测试，大家试一下吧。
+
+优点：扩展性好，并且程序代码改动的不是很大
+
+缺点：这种方法的效果比第二种要差一点
+
+ 
+
+三，总结一下
+
+上面提到的三种方法，我实际做过二种，第一种和第二种。第三种没有做过，所以说的细一 点。哈哈。做什么事都有一个度，超过个度就过变得很差，不能一味的做数据库服务器集群，硬件是要花钱买的，也不要一味的分表，分出来1000 表，mysql的存储归根到底还以文件的形势存在硬盘上面，一张表对应三个文件，1000个分表就是对应3000个文件，这样检索起来也会变的很慢 。我的 建议是
+
+方法1和方法2结合的方式来进行分表
+
+方法1和方法3结合的方式来进行分表
+
+我的二个建议适合不同的情况，根据个人情况而定，我觉得会有很多人选择方法1和方法3结合的方式
+
+ 
+
+分库分表产生的问题，及注意事项
+1. 分库分表维度的问题
+假如用户购买了商品,需要将交易记录保存取来，如果按照用户的纬度分表，则每个用户的交易记录都保存在同一表中，所以很快很方便的查找到某用户的购买情况，但是某商品被购买的情况则很有可能分布在多张表中，查找起来比较麻烦。反之，按照商品维度分表，可以很方便的查找到此商品的购买情况，但要查找到买人的交易记录比较麻烦。 
+所以常见的解决方式有：
+     a.通过扫表的方式解决，此方法基本不可能，效率太低了。
+     b.记录两份数据，一份按照用户纬度分表，一份按照商品维度分表。
+     c.通过搜索引擎解决，但如果实时性要求很高，又得关系到实时搜索。
+2. 联合查询的问题
+联合查询基本不可能，因为关联的表有可能不在同一数据库中。 
+3.   避免跨库事务
+避免在一个事务中修改db0中的表的时候同时修改db1中的表，一个是操作起来更复杂，效率也会有一定影响。
+4.   尽量把同一组数据放到同一DB服务器上
+例如将卖家a的商品和交易信息都放到db0中，当db1挂了的时候，卖家a相关的东西可以正常使用。也就是说避免数据库中的数据依赖另一数据库中的数据。
